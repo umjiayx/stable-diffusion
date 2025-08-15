@@ -1,0 +1,37 @@
+model:
+  target: ldm.models.autoencoder.AutoencoderKL
+  params:
+    embed_dim: 3
+    lossconfig:
+      target: ldm.modules.losses.mse_kl.MSEWithKL
+      params:
+        kl_weight: 0.000001
+    ckpt_path: './logs/[0]_2025-08-13T02-14-47_QG_v3_autoencoder_kl_64x64x3/checkpoints/epoch=000048.ckpt'
+    ddconfig:
+      double_z: True
+      z_channels: 3
+      resolution: 128          # set to your training size; must match resize_to below if you resize
+      in_channels: 1           # <-- changed to 1 channel
+      out_ch: 1                # <-- changed to 1 channel
+      ch: 128
+      ch_mult: [1, 2, 4]
+      num_res_blocks: 2
+      attn_resolutions: []
+      dropout: 0.0
+
+data:
+  target: main_train.DataModuleFromConfig
+  params:
+    batch_size: 64
+    num_workers: 4
+    wrap: False
+    use_worker_init_fn: False
+
+    test:
+      target: ldm.data.mydata.TrajFramesTest
+      params:
+        pt_path: /scratch/qingqu_root/qingqu/jiayx/FlowDAS/QG/data/qg_v3/qg_test.pt
+        normalize_const: 0.3492
+        key: null
+        input_scale: null
+        # resize_to: 128

@@ -1,0 +1,67 @@
+model:
+  base_learning_rate: 4.5e-6
+  target: ldm.models.autoencoder.AutoencoderKL
+  params:
+    monitor: "val/rec_loss"
+    embed_dim: 4
+    lossconfig:
+      target: ldm.modules.losses.mse_kl.MSEWithKL
+      params:
+        kl_weight: 0.000001
+    ddconfig:
+      double_z: True
+      z_channels: 4
+      resolution: 128          # set to your training size; must match resize_to below if you resize
+      in_channels: 1           # <-- changed to 1 channel
+      out_ch: 1                # <-- changed to 1 channel
+      ch: 128
+      ch_mult: [1, 2, 4, 4]
+      num_res_blocks: 2
+      attn_resolutions: []
+      dropout: 0.0
+
+data:
+  target: main_train.DataModuleFromConfig
+  params:
+    batch_size: 64
+    num_workers: 4
+    wrap: False
+    use_worker_init_fn: False
+
+    train:
+      target: ldm.data.mydata.TrajFramesTrain
+      params:
+        pt_path: /scratch/qingqu_root/qingqu/jiayx/FlowDAS/QG/data/qg_v3/qg_full.pt    # <-- set this
+        normalize_const: 0.3492
+        key: null                          # set a key name if your .pt is a dict
+        val_fraction: 0.05
+        random_seed: 23
+        input_scale: null              # "zero_one" if data in [0,1], "uint8" if 0..255
+        resize_to: 128                     # set to match ddconfig.resolution
+
+    validation:
+      target: ldm.data.mydata.TrajFramesValidation
+      params:
+        pt_path: /scratch/qingqu_root/qingqu/jiayx/FlowDAS/QG/data/qg_v3/qg_full.pt
+        normalize_const: 0.3492
+        key: null
+        val_fraction: 0.05
+        random_seed: 23
+        input_scale: null
+        resize_to: 128
+
+lightning:
+  callbacks:
+    image_logger:
+      target: main_train.ImageLogger
+      params:
+        batch_frequency: 1000
+        max_images: 8
+        increase_log_steps: True
+  trainer:
+    benchmark: True
+    accumulate_grad_batches: 2
+    # max_steps: 10
+    max_epochs: 180
+    val_check_interval: 100  # is this frequency too high?
+    # add any other trainer args you need (max_epochs, precision, etc.)
